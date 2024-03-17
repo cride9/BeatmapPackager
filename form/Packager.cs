@@ -16,7 +16,7 @@ namespace BeatmapPackager {
 
                 if ( fbd.ShowDialog( ) == DialogResult.OK && !string.IsNullOrWhiteSpace( fbd.SelectedPath ) ) {
                     folderPath = fbd.SelectedPath;
-                    osuFolderLabel.Text = folderPath.Split( @"\" ).Last( );
+                    osuFolderLabel.Text = folderPath;
                 }
             }
         }
@@ -28,7 +28,7 @@ namespace BeatmapPackager {
                 if ( fbd.ShowDialog( ) == DialogResult.OK && !string.IsNullOrWhiteSpace( fbd.SelectedPath ) ) {
 
                     dirInfo = new( fbd.SelectedPath );
-                    outputFolderLabel.Text = fbd.SelectedPath.Split(@"\").Last();
+                    outputFolderLabel.Text = fbd.SelectedPath;
                 }
             }
         }
@@ -52,19 +52,32 @@ namespace BeatmapPackager {
 
                 }
 
-                foreach ( var dir in dirs ) {
+                using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.ps1", false ) ) {
 
-                    string folderName = dir.Split( @"\" ).Last( );
-                    string outputName = $@"{dirInfo.FullName}\{folderName}.osz";
-                    string sourceFolder = $@"{folderPath}\{folderName}";
+                    sw.WriteLine(
+                        $"$downloadDirectory = $PSScriptRoot"
+                        );
 
-                    if ( !File.Exists( outputName ) ) {
-                        ZipFile.CreateFromDirectory( sourceFolder, outputName );
-                        PrintMessage( $"Created: {outputName}\n" );
+
+                    foreach ( var dir in dirs ) {
+
+                        string folderName = dir.Split( @"\" ).Last( );
+                        string outputName = $@"{dirInfo.FullName}\{folderName}.osz";
+                        string sourceFolder = $@"{folderPath}\{folderName}";
+
+                        if ( !File.Exists( outputName ) ) {
+
+                            sw.WriteLine(
+                                $"Invoke-WebRequest -Uri \"https://beatconnect.io/b/{folderName.Split( ' ' )[ 0 ]}/\" -OutFile \"$downloadDirectory\\{folderName}.osz\"\n" +
+                                $"Write-Host \"Downloaded: {folderName}\"\n" );
+
+                            PrintMessage( $"Created: {outputName}\n" );
+                        }
+                        else {
+
+                            PrintMessage( $"Failed to create: {folderName}.osz\n", true );
+                        }
                     }
-                    else 
-                        PrintMessage( $"Failed to create: {folderName}.osz\n", true );
-
                 }
 
             } catch ( Exception exception ) {
