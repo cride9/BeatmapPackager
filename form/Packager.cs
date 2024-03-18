@@ -1,7 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.DirectoryServices.ActiveDirectory;
-using System.IO.Compression;
 using System.Net;
 
 namespace BeatmapPackager {
