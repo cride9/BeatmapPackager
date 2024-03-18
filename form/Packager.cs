@@ -1,6 +1,8 @@
+using System;
 using System.Diagnostics;
 using System.DirectoryServices.ActiveDirectory;
 using System.IO.Compression;
+using System.Net;
 
 namespace BeatmapPackager {
     public partial class MainForm : Form {
@@ -25,40 +27,67 @@ namespace BeatmapPackager {
 
             try {
 
-                var dirs = GetDirectories( );
+                var mapDirectories = GetDirectories( );
 
-                using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.ps1", false ) ) {
-
-                    sw.WriteLine(
-                        $"$downloadDirectory = $PSScriptRoot"
-                        );
-
-                    foreach ( var dir in dirs ) {
-
-                        string folderName = dir.Split( @"\" ).Last( );
-                        string outputName = $@"{dirInfo.FullName}\{folderName}.osz";
-                        string sourceFolder = $@"{folderPath}\{folderName}";
-
-                        if ( !File.Exists( outputName ) ) {
-
-                            string 
-                            writeString = $"Invoke-WebRequest -Uri \"https://beatconnect.io/b/{folderName.Split( ' ' )[ 0 ]}/\" -OutFile \"$downloadDirectory\\{folderName}.osz\"\n";
-                            writeString += $"Write-Host \"Downloaded: {folderName}\"\n";
-
-                            sw.WriteLine( writeString );
-                            PrintMessage( writeString );
-                        }
-                    }
+                switch ( cbType.SelectedIndex ) {
+                    case 0:
+                        CreatePowershellScript( mapDirectories );
+                        break;
+                    case 1:
+                        CreatePackagerScript( mapDirectories );
+                        break;
                 }
-
-                Process.Start( "explorer.exe", dirInfo.FullName );
-            } catch ( Exception exception ) {
+            }
+            catch ( Exception exception ) {
 
                 MessageBox.Show( exception.Message );
             }
         }
 
-        private string[ ] GetDirectories() {
+        private void CreatePackagerScript( string[ ] dirs ) {
+
+            using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.pack", false ) ) {
+
+                ResizeProgressBar( dirs.Length );
+                foreach ( var directory in dirs ) {
+                    string folderName = directory.Split( @"\" ).Last( );
+                    sw.Write( $"{folderName};" );
+                    progressBar.Value++;
+                }
+            }
+            Process.Start( "explorer.exe", dirInfo.FullName );
+        }
+
+        private void CreatePowershellScript( string[ ] dirs ) {
+
+
+            using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.ps1", false ) ) {
+
+                sw.WriteLine( $"$downloadDirectory = Join-Path -Path $PSScriptRoot -ChildPath \"songs\"\n" +
+                    $"if (-not (Test-Path -Path $downloadDirectory)) {{\r\n    New-Item -Path $downloadDirectory -ItemType Directory\r\n}}" );
+
+                ResizeProgressBar( dirs.Length );
+                foreach ( var dir in dirs ) {
+
+                    string folderName = dir.Split( @"\" ).Last( );
+                    string outputName = $@"{dirInfo.FullName}\{folderName}.osz";
+
+                    if ( !File.Exists( outputName ) ) {
+
+                        string
+                        writeString = $"Invoke-WebRequest -Uri \"https://beatconnect.io/b/{folderName.Split( ' ' )[ 0 ]}/\" -OutFile \"$downloadDirectory\\{folderName}.osz\"\n";
+                        writeString += $"Write-Host \"Downloaded: {folderName}\"\n";
+
+                        sw.WriteLine( writeString );
+                    }
+                    progressBar.Value++;
+                }
+            }
+
+            Process.Start( "explorer.exe", dirInfo.FullName );
+        }
+
+        private string[ ] GetDirectories( ) {
 
             if ( string.IsNullOrWhiteSpace( folderPath ) )
                 throw new Exception( "Please choose the osu \"Songs\" folder first!" );
@@ -68,29 +97,66 @@ namespace BeatmapPackager {
             if ( dirs.Length <= 0 )
                 throw new Exception( "Chosen beatmap directory does not contain any maps" );
 
-            if ( !dirInfo.Exists ) {
-
-                DialogResult result = MessageBox.Show( "Would you like to create the output folder?", "Output folder not found", MessageBoxButtons.YesNo );
-                if ( result == DialogResult.Yes )
-                    dirInfo.Create( );
-                else
-                    throw new Exception( "Chosen output folder not found or not created yet!" );
-
-            }
-
             return dirs;
         }
 
-        private void PrintMessage( string message, bool error = false ) {
+        private void OnLoad( object sender, EventArgs e ) {
 
-            if ( !error ) {
-                outputTextbox.ForeColor = Color.FromArgb( 255, 0, 192, 0 );
-                outputTextbox.Text += message;
-                return;
+            comboTooltip.SetToolTip( cbType, "PowerShell script: Creates a standalone powershell script (slower)\nPackager script: Creates a packager script that can be imported in that application (faster download)" );
+            cbType.SelectedIndex = 0;
+        }
+
+        private async Task ReadMapPackFile( string[] mapPack ) {
+
+            var dir = Directory.CreateDirectory( $"{dirInfo.FullName}/songs" );
+
+            foreach ( var item in mapPack ) {
+
+                if ( item == mapPack.Last( ) )
+                    continue;
+
+                if ( File.Exists( $"{dirInfo.FullName}/songs/{item}.osz" ) )
+                    continue;
+
+                WebClient currentClient = new( );
+                currentClient.DownloadFileAsync( new Uri( $"https://beatconnect.io/b/{item.Split(' ').First()}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
+                currentClient.DownloadFileCompleted += DisposeOnComplete;
             }
+            Process.Start( "explorer.exe", dir.FullName );
+        }
 
-            outputTextbox.ForeColor = Color.FromArgb( 255, 255, 128, 128 );
-            outputTextbox.Text += message;
+        private void DisposeOnComplete( object? sender, System.ComponentModel.AsyncCompletedEventArgs e ) {
+            (sender as WebClient)!.Dispose();
+            progressBar.Value++;
+        }
+
+        private void OnImport( object sender, EventArgs e ) {
+
+            try {
+                using ( var fileDialog = new OpenFileDialog( ) { Multiselect = false } ) {
+
+                    if ( fileDialog.ShowDialog( ) == DialogResult.OK ) {
+
+                        if ( !fileDialog.FileName.Contains( ".pack" ) )
+                            throw new Exception( $"Invalid file: {fileDialog.FileName.Split(@"\").Last()}" );
+
+                        using ( StreamReader sr = new( fileDialog.OpenFile() ) ) {
+                            var readFile = sr.ReadLine( )!.Split( ';' )!;
+                            ResizeProgressBar( readFile.Length - 1 );
+                            ReadMapPackFile( readFile ).Wait();
+                        }
+                    }
+                }
+            } catch ( Exception ex ) {
+
+                MessageBox.Show( ex.Message );
+            }
+        }
+
+        private void ResizeProgressBar( int newSize ) {
+
+            progressBar.Maximum = newSize;
+            progressBar.Value = 0;
         }
     }
 }
