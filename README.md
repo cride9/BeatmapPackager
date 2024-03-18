@@ -9,7 +9,7 @@ The osu! Beatmap Packager is a specialized Windows Forms application designed fo
 ## Key Features:
 - **User-Friendly Interface:** The MainForm interface provides a straightforward and intuitive way for users to select their osu! Songs folder and initiate the packaging process.
 
-- **Automatic Script Creation: **Upon execution, the application can automatically generate either a PowerShell script (downloadMaps.ps1) or a custom pack file (downloadMaps.pack) in the application's base directory, based on the user's choice. These scripts contain commands or data to download the shared beatmaps.
+- **Automatic Script Creation:** Upon execution, the application can automatically generate either a PowerShell script (downloadMaps.ps1) or a custom pack file (downloadMaps.pack) in the application's base directory, based on the user's choice. These scripts contain commands or data to download the shared beatmaps.
 
 - **Efficient Beatmap Sharing:** Instead of manually sharing each beatmap file, users can share a single script or pack file. This approach streamlines the sharing process and ensures that the recipient can easily download all shared beatmaps.
 
