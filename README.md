@@ -1,5 +1,5 @@
-- [Key Features](#Key Features)
-- [Getting Started](#Getting Started)
+- [Key Features](#Key_Features)
+- [Getting Started](#Getting_Started)
 - [Troubleshooting](#Troubleshooting)
 - [Note](#Note)
 
