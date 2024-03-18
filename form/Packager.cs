@@ -9,6 +9,7 @@ namespace BeatmapPackager {
 
         string folderPath = string.Empty;
         DirectoryInfo dirInfo = new( AppDomain.CurrentDomain.BaseDirectory );
+        List<WebClient> currentDownloads = new( );
 
         private void sourceButtonPress( object sender, EventArgs e ) {
 
@@ -107,24 +108,34 @@ namespace BeatmapPackager {
         private async Task ReadMapPackFile( string[] mapPack ) {
 
             var dir = Directory.CreateDirectory( $"{dirInfo.FullName}/songs" );
+            Process.Start( "explorer.exe", dir.FullName );
 
             foreach ( var item in mapPack ) {
 
                 if ( item == mapPack.Last( ) )
                     continue;
 
-                if ( File.Exists( $"{dirInfo.FullName}/songs/{item}.osz" ) )
+                if ( File.Exists( $"{dirInfo.FullName}/songs/{item}.osz" ) ) {
+                    progressBar.Value++;
                     continue;
+                }
 
                 WebClient currentClient = new( );
-                currentClient.DownloadFileAsync( new Uri( $"https://beatconnect.io/b/{item.Split(' ').First()}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
+                Task downloadTask = currentClient.DownloadFileTaskAsync( new Uri( $"https://beatconnect.io/b/{item.Split(' ').First()}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
                 currentClient.DownloadFileCompleted += DisposeOnComplete;
+
+                currentDownloads.Add( currentClient );
+                while ( currentClient.IsBusy && currentDownloads.Count >= 5 )
+                    Thread.Sleep( 1 );
+
+                currentDownloads.RemoveAll( match => !match.IsBusy );
             }
-            Process.Start( "explorer.exe", dir.FullName );
         }
 
         private void DisposeOnComplete( object? sender, System.ComponentModel.AsyncCompletedEventArgs e ) {
-            (sender as WebClient)!.Dispose();
+            WebClient current = ( sender as WebClient )!;
+            currentDownloads.Remove( current );
+            current.Dispose();
             progressBar.Value++;
         }
 
