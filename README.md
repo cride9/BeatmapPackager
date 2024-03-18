@@ -1,7 +1,7 @@
-- [Key Features](#Key_Features)
-- [Getting Started](#Getting_Started)
-- [Troubleshooting](#Troubleshooting)
-- [Note](#Note)
+- [Key Features](#key-features)
+- [Getting Started](#getting-started)
+- [Troubleshooting](#troubleshooting)
+- [Note](#note)
 
 # osu! Beatmap Packager
 The osu! Beatmap Packager is a specialized Windows Forms application designed for osu! players and enthusiasts. This tool simplifies the process of sharing your osu! beatmaps with friends or the community by generating a custom script directly from your osu! Songs folder, enabling the recipient to download all shared beatmaps effortlessly into a specified directory.
