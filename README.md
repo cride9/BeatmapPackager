@@ -22,10 +22,10 @@ The osu! Beatmap Packager is a specialized Windows Forms application designed fo
 - **Progress Bar Visualization:** Added a progress bar that visually represents the current packaging and downloading phases, enhancing user engagement and understanding of the process.
 
 ## Getting Started:
-1. **Prerequisites: **Ensure that you have .NET 8 installed on your Windows machine.
+1. **Prerequisites:** Ensure that you have .NET 8 installed on your Windows machine.
 2. **Download and Installation:** Clone or download this repository, and run the BeatmapPackager.exe application.
 3. **Selecting the osu! Songs Folder:** Use the interface to navigate and select your osu! Songs folder.
-4. **Generating the Script or Pack File: **Press the execute button to generate the downloadMaps.ps1 PowerShell script or downloadMaps.pack file based on your selection.
+4. **Generating the Script or Pack File:** Press the execute button to generate the downloadMaps.ps1 PowerShell script or downloadMaps.pack file based on your selection.
 5. **Sharing and Using the Script or Pack File:** Share the generated script or pack file with the intended recipient. They will need to run the script in PowerShell or use the application to process the pack file and download the shared beatmaps.
 
 ## Troubleshooting:
