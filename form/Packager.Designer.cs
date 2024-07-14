@@ -33,6 +33,7 @@
             downloadButton = new Button( );
             progressBar = new ProgressBar( );
             label1 = new Label( );
+            ProgressUpdate = new System.Windows.Forms.Timer( components );
             SuspendLayout( );
             // 
             // osuFolderLabel
@@ -107,6 +108,11 @@
             label1.TabIndex = 9;
             label1.Text = "Progress";
             // 
+            // ProgressUpdate
+            // 
+            ProgressUpdate.Enabled = true;
+            ProgressUpdate.Tick +=  ProgressBarTick ;
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF( 7F, 14F );
@@ -143,5 +149,6 @@
         private Button downloadButton;
         private ProgressBar progressBar;
         private Label label1;
+        private System.Windows.Forms.Timer ProgressUpdate;
     }
 }

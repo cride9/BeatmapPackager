@@ -7,6 +7,7 @@ namespace BeatmapPackager {
         public MainForm( ) =>
             InitializeComponent( );
 
+        static int progressedSongs = 0;
         string folderPath = string.Empty;
         DirectoryInfo dirInfo = new( AppDomain.CurrentDomain.BaseDirectory );
         List<WebClient> currentDownloads = new( );
@@ -105,7 +106,7 @@ namespace BeatmapPackager {
             cbType.SelectedIndex = 0;
         }
 
-        private async Task ReadMapPackFile( string[] mapPack ) {
+        private Task ReadMapPackFile( string[ ] mapPack ) {
 
             var dir = Directory.CreateDirectory( $"{dirInfo.FullName}/songs" );
             Process.Start( "explorer.exe", dir.FullName );
@@ -116,27 +117,30 @@ namespace BeatmapPackager {
                     continue;
 
                 if ( File.Exists( $"{dirInfo.FullName}/songs/{item}.osz" ) ) {
-                    progressBar.Value++;
+                    progressedSongs++;
                     continue;
                 }
 
                 WebClient currentClient = new( );
-                Task downloadTask = currentClient.DownloadFileTaskAsync( new Uri( $"https://beatconnect.io/b/{item.Split(' ').First()}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
+                Task downloadTask = currentClient.DownloadFileTaskAsync( new Uri( $"https://beatconnect.io/b/{item.Split( ' ' ).First( )}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
                 currentClient.DownloadFileCompleted += DisposeOnComplete;
 
                 currentDownloads.Add( currentClient );
-                while ( currentClient.IsBusy && currentDownloads.Count >= 5 )
-                    Thread.Sleep( 1 );
+                while ( currentDownloads.Count >= 5 ) {
 
-                currentDownloads.RemoveAll( match => !match.IsBusy );
+                    currentDownloads.RemoveAll( match => !match.IsBusy );
+                    continue;
+                }
             }
+
+            return Task.CompletedTask;
         }
 
         private void DisposeOnComplete( object? sender, System.ComponentModel.AsyncCompletedEventArgs e ) {
             WebClient current = ( sender as WebClient )!;
             currentDownloads.Remove( current );
-            current.Dispose();
-            progressBar.Value++;
+            current.Dispose( );
+            progressedSongs++;
         }
 
         private void OnImport( object sender, EventArgs e ) {
@@ -147,16 +151,17 @@ namespace BeatmapPackager {
                     if ( fileDialog.ShowDialog( ) == DialogResult.OK ) {
 
                         if ( !fileDialog.FileName.Contains( ".pack" ) )
-                            throw new Exception( $"Invalid file: {fileDialog.FileName.Split(@"\").Last()}" );
+                            throw new Exception( $"Invalid file: {fileDialog.FileName.Split( @"\" ).Last( )}" );
 
-                        using ( StreamReader sr = new( fileDialog.OpenFile() ) ) {
+                        using ( StreamReader sr = new( fileDialog.OpenFile( ) ) ) {
                             var readFile = sr.ReadLine( )!.Split( ';' )!;
                             ResizeProgressBar( readFile.Length - 1 );
-                            ReadMapPackFile( readFile ).Wait();
+                            Task.Run( ( ) => ReadMapPackFile( readFile ) );
                         }
                     }
                 }
-            } catch ( Exception ex ) {
+            }
+            catch ( Exception ex ) {
 
                 MessageBox.Show( ex.Message );
             }
@@ -165,7 +170,12 @@ namespace BeatmapPackager {
         private void ResizeProgressBar( int newSize ) {
 
             progressBar.Maximum = newSize;
-            progressBar.Value = 0;
+            progressedSongs = progressBar.Value = 0;
+        }
+
+        private void ProgressBarTick( object sender, EventArgs e ) {
+
+            progressBar.Value = progressedSongs;
         }
     }
 }
