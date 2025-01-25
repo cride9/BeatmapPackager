@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Web;
+using System.Windows.Forms;
 
 namespace BeatmapPackager {
     public partial class MainForm : Form
@@ -13,6 +14,15 @@ namespace BeatmapPackager {
         string folderPath = string.Empty;
         DirectoryInfo dirInfo = new(AppDomain.CurrentDomain.BaseDirectory);
         List<WebClient> currentDownloads = new();
+        OpenFileDialog openedFileDialog = new();
+
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
 
         private void sourceButtonPress(object sender, EventArgs e)
         {
@@ -172,17 +182,10 @@ namespace BeatmapPackager {
         {
             using (var fileDialog = new OpenFileDialog() { Multiselect = false, Filter = "Pack Files (*.pack)|*.pack" })
             {
-
                 if (fileDialog.ShowDialog() == DialogResult.OK)
                 {
+                    openedFileDialog = fileDialog;
                     osuSelectedScriptLabel.Text = "Selected Script: " + fileDialog.FileName;
-                    using (StreamReader sr = new(fileDialog.OpenFile()))
-                    {
-                        var readFile = sr.ReadLine()!.Split(';')!;
-
-                        ResizeProgressBar(readFile.Length - 1);
-                        Task.Run(() => ReadMapPackFile(readFile));
-                    }
                 }
             }
         }
@@ -203,6 +206,32 @@ namespace BeatmapPackager {
         private void progressBar_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (openedFileDialog.FileName != String.Empty)
+                using (StreamReader sr = new(openedFileDialog.OpenFile()))
+                {
+                    var readFile = sr.ReadLine()!.Split(';')!;
+
+                    ResizeProgressBar(readFile.Length - 1);
+                    Task.Run(() => ReadMapPackFile(readFile));
+                }
+        }
+
+        private void osuExitButton_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.Application.Exit();
+        }
+
+        private void MainForm_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            }
         }
     }
 }
