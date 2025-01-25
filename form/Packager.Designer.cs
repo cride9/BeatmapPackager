@@ -34,10 +34,9 @@
             progressBar = new ProgressBar();
             ProgressUpdate = new System.Windows.Forms.Timer(components);
             osuTitle = new Label();
-            osuScriptLabel = new Label();
-            osuFolderLabel = new Label();
             osuDownloadedItems = new TextBox();
             osuSelectedScriptLabel = new Label();
+            osuSelectedSongsFolderLabel = new Label();
             SuspendLayout();
             // 
             // osuFolderButton
@@ -121,25 +120,6 @@
             osuTitle.TabIndex = 9;
             osuTitle.Text = "Beatmap Packager";
             // 
-            // osuScriptLabel
-            // 
-            osuScriptLabel.AutoSize = true;
-            osuScriptLabel.Location = new Point(102, 58);
-            osuScriptLabel.Name = "osuScriptLabel";
-            osuScriptLabel.Size = new Size(154, 14);
-            osuScriptLabel.TabIndex = 11;
-            osuScriptLabel.Text = "                     ";
-            // 
-            // osuFolderLabel
-            // 
-            osuFolderLabel.AutoSize = true;
-            osuFolderLabel.Font = new Font("Arial", 9F);
-            osuFolderLabel.Location = new Point(12, 40);
-            osuFolderLabel.Name = "osuFolderLabel";
-            osuFolderLabel.Size = new Size(87, 15);
-            osuFolderLabel.TabIndex = 12;
-            osuFolderLabel.Text = "Songs Folder: ";
-            // 
             // osuDownloadedItems
             // 
             osuDownloadedItems.BackColor = Color.FromArgb(35, 35, 35);
@@ -162,16 +142,25 @@
             osuSelectedScriptLabel.TabIndex = 14;
             osuSelectedScriptLabel.Text = "Selected Script: ";
             // 
+            // osuSelectedSongsFolderLabel
+            // 
+            osuSelectedSongsFolderLabel.AutoSize = true;
+            osuSelectedSongsFolderLabel.Font = new Font("Arial", 9F);
+            osuSelectedSongsFolderLabel.Location = new Point(12, 43);
+            osuSelectedSongsFolderLabel.Name = "osuSelectedSongsFolderLabel";
+            osuSelectedSongsFolderLabel.Size = new Size(138, 15);
+            osuSelectedSongsFolderLabel.TabIndex = 15;
+            osuSelectedSongsFolderLabel.Text = "Selected Songs Folder: ";
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 14F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(25, 25, 25);
             ClientSize = new Size(534, 241);
+            Controls.Add(osuSelectedSongsFolderLabel);
             Controls.Add(osuSelectedScriptLabel);
             Controls.Add(osuDownloadedItems);
-            Controls.Add(osuFolderLabel);
-            Controls.Add(osuScriptLabel);
             Controls.Add(osuTitle);
             Controls.Add(progressBar);
             Controls.Add(downloadButton);
@@ -202,9 +191,8 @@
         private System.Windows.Forms.Timer ProgressUpdate;
         private Label osuTitle;
         private Label osuFolderLabel;
-        private Label osuScriptLabel;
-        private Label osuFolderLabel;
         private TextBox osuDownloadedItems;
         private Label osuSelectedScriptLabel;
+        private Label osuSelectedSongsFolderLabel;
     }
 }

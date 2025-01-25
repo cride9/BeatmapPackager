@@ -23,8 +23,7 @@ namespace BeatmapPackager {
                 if (fbd.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
                 {
                     folderPath = fbd.SelectedPath;
-                    if (osuFolderLabel.Text.Length > 0)
-                        osuFolderLabel.Text = folderPath;
+                    osuSelectedSongsFolderLabel.Text = "Selected Songs Folder: " + folderPath;
                 }
             }
         }
