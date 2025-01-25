@@ -1,134 +1,168 @@
 using System;
 using System.Diagnostics;
 using System.Net;
+using System.Web;
+using System.Windows.Forms;
 
 namespace BeatmapPackager {
-    public partial class MainForm : Form {
-        public MainForm( ) =>
-            InitializeComponent( );
+    public partial class MainForm : Form
+    {
+        public MainForm() =>
+            InitializeComponent();
 
         static int progressedSongs = 0;
         string folderPath = string.Empty;
-        DirectoryInfo dirInfo = new( AppDomain.CurrentDomain.BaseDirectory );
-        List<WebClient> currentDownloads = new( );
+        DirectoryInfo dirInfo = new(AppDomain.CurrentDomain.BaseDirectory);
+        List<WebClient> currentDownloads = new();
+        OpenFileDialog openedFileDialog = new();
 
-        private void sourceButtonPress( object sender, EventArgs e ) {
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
 
-            using ( var fbd = new FolderBrowserDialog( ) ) {
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
 
-                if ( fbd.ShowDialog( ) == DialogResult.OK && !string.IsNullOrWhiteSpace( fbd.SelectedPath ) ) {
+        private void sourceButtonPress(object sender, EventArgs e)
+        {
+
+            using (var fbd = new FolderBrowserDialog())
+            {
+
+                if (fbd.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
+                {
                     folderPath = fbd.SelectedPath;
-                    osuFolderLabel.Text = folderPath;
+                    osuSelectedSongsFolderLabel.Text = "Selected Songs Folder: " + folderPath;
                 }
             }
         }
 
-        private void executeButtonPress( object sender, EventArgs e ) {
+        private void executeButtonPress(object sender, EventArgs e)
+        {
 
-            try {
+            try
+            {
 
-                var mapDirectories = GetDirectories( );
+                var mapDirectories = GetDirectories();
 
-                switch ( cbType.SelectedIndex ) {
+                switch (cbType.SelectedIndex)
+                {
                     case 0:
-                        CreatePowershellScript( mapDirectories );
+                        CreatePowershellScript(mapDirectories);
                         break;
                     case 1:
-                        CreatePackagerScript( mapDirectories );
+                        CreatePackagerScript(mapDirectories);
                         break;
                 }
             }
-            catch ( Exception exception ) {
+            catch (Exception exception)
+            {
 
-                MessageBox.Show( exception.Message );
+                MessageBox.Show(exception.Message);
             }
         }
 
-        private void CreatePackagerScript( string[ ] dirs ) {
+        private void CreatePackagerScript(string[] dirs)
+        {
 
-            using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.pack", false ) ) {
+            using (StreamWriter sw = new($@"{dirInfo.FullName}\downloadMaps.pack", false))
+            {
 
-                ResizeProgressBar( dirs.Length );
-                foreach ( var directory in dirs ) {
-                    string folderName = directory.Split( @"\" ).Last( );
-                    sw.Write( $"{folderName};" );
+                ResizeProgressBar(dirs.Length);
+                foreach (var directory in dirs)
+                {
+                    string folderName = directory.Split(@"\").Last();
+                    sw.Write($"{folderName};");
                     progressBar.Value++;
                 }
             }
-            Process.Start( "explorer.exe", dirInfo.FullName );
+            Process.Start("explorer.exe", dirInfo.FullName);
         }
 
-        private void CreatePowershellScript( string[ ] dirs ) {
+        private void CreatePowershellScript(string[] dirs)
+        {
 
 
-            using ( StreamWriter sw = new( $@"{dirInfo.FullName}\downloadMaps.ps1", false ) ) {
+            using (StreamWriter sw = new($@"{dirInfo.FullName}\downloadMaps.ps1", false))
+            {
 
-                sw.WriteLine( $"$downloadDirectory = Join-Path -Path $PSScriptRoot -ChildPath \"songs\"\n" +
-                    $"if (-not (Test-Path -Path $downloadDirectory)) {{\r\n    New-Item -Path $downloadDirectory -ItemType Directory\r\n}}" );
+                sw.WriteLine($"$downloadDirectory = Join-Path -Path $PSScriptRoot -ChildPath \"songs\"\n" +
+                    $"if (-not (Test-Path -Path $downloadDirectory)) {{\r\n    New-Item -Path $downloadDirectory -ItemType Directory\r\n}}");
 
-                ResizeProgressBar( dirs.Length );
-                foreach ( var dir in dirs ) {
+                ResizeProgressBar(dirs.Length);
+                foreach (var dir in dirs)
+                {
 
-                    string folderName = dir.Split( @"\" ).Last( );
+                    string folderName = dir.Split(@"\").Last();
                     string outputName = $@"{dirInfo.FullName}\{folderName}.osz";
 
-                    if ( !File.Exists( outputName ) ) {
+                    if (!File.Exists(outputName))
+                    {
 
                         string
-                        writeString = $"Invoke-WebRequest -Uri \"https://beatconnect.io/b/{folderName.Split( ' ' )[ 0 ]}/\" -OutFile \"$downloadDirectory\\{folderName}.osz\"\n";
+                        writeString = $"Invoke-WebRequest -Uri \"https://beatconnect.io/b/{folderName.Split(' ')[0]}/\" -OutFile \"$downloadDirectory\\{folderName}.osz\"\n";
                         writeString += $"Write-Host \"Downloaded: {folderName}\"\n";
 
-                        sw.WriteLine( writeString );
+                        sw.WriteLine(writeString);
                     }
                     progressBar.Value++;
                 }
             }
 
-            Process.Start( "explorer.exe", dirInfo.FullName );
+            Process.Start("explorer.exe", dirInfo.FullName);
         }
 
-        private string[ ] GetDirectories( ) {
+        private string[] GetDirectories()
+        {
 
-            if ( string.IsNullOrWhiteSpace( folderPath ) )
-                throw new Exception( "Please choose the osu \"Songs\" folder first!" );
+            if (string.IsNullOrWhiteSpace(folderPath))
+                throw new Exception("Please choose the osu \"Songs\" folder first!");
 
-            string[ ] dirs = Directory.GetDirectories( folderPath );
+            string[] dirs = Directory.GetDirectories(folderPath);
 
-            if ( dirs.Length <= 0 )
-                throw new Exception( "Chosen beatmap directory does not contain any maps" );
+            if (dirs.Length <= 0)
+                throw new Exception("Chosen beatmap directory does not contain any maps");
 
             return dirs;
         }
 
-        private void OnLoad( object sender, EventArgs e ) {
-
-            comboTooltip.SetToolTip( cbType, "PowerShell script: Creates a standalone powershell script (slower)\nPackager script: Creates a packager script that can be imported in that application (faster download)" );
+        private void OnLoad(object sender, EventArgs e)
+        {
+            osuDownloadedItems.Text = String.Empty;
+            comboTooltip.SetToolTip(cbType, "PowerShell script: Creates a standalone powershell script (slower)\nPackager script: Creates a packager script that can be imported in that application (faster download)");
             cbType.SelectedIndex = 0;
         }
 
-        private Task ReadMapPackFile( string[ ] mapPack ) {
+        private Task ReadMapPackFile(string[] mapPack)
+        {
 
-            var dir = Directory.CreateDirectory( $"{dirInfo.FullName}/songs" );
-            Process.Start( "explorer.exe", dir.FullName );
+            var dir = Directory.CreateDirectory($"{dirInfo.FullName}/songs");
+            Process.Start("explorer.exe", dir.FullName);
 
-            foreach ( var item in mapPack ) {
+            foreach (var item in mapPack)
+            {
 
-                if ( item == mapPack.Last( ) )
+                if (item == mapPack.Last())
                     continue;
 
-                if ( File.Exists( $"{dirInfo.FullName}/songs/{item}.osz" ) ) {
+                osuDownloadedItems.AppendText(item + Environment.NewLine);
+
+                if (File.Exists($"{dirInfo.FullName}/songs/{item}.osz"))
+                {
                     progressedSongs++;
                     continue;
                 }
 
-                WebClient currentClient = new( );
-                Task downloadTask = currentClient.DownloadFileTaskAsync( new Uri( $"https://beatconnect.io/b/{item.Split( ' ' ).First( )}/" ), $"{dirInfo.FullName}/songs/{item}.osz" );
+                WebClient currentClient = new();
+                Task downloadTask = currentClient.DownloadFileTaskAsync(new Uri($"https://beatconnect.io/b/{item.Split(' ').First()}/"), $"{dirInfo.FullName}/songs/{item}.osz");
                 currentClient.DownloadFileCompleted += DisposeOnComplete;
 
-                currentDownloads.Add( currentClient );
-                while ( currentDownloads.Count >= 5 ) {
+                currentDownloads.Add(currentClient);
+                while (currentDownloads.Count >= 5)
+                {
 
-                    currentDownloads.RemoveAll( match => !match.IsBusy );
+                    currentDownloads.RemoveAll(match => !match.IsBusy);
                     continue;
                 }
             }
@@ -136,46 +170,68 @@ namespace BeatmapPackager {
             return Task.CompletedTask;
         }
 
-        private void DisposeOnComplete( object? sender, System.ComponentModel.AsyncCompletedEventArgs e ) {
-            WebClient current = ( sender as WebClient )!;
-            currentDownloads.Remove( current );
-            current.Dispose( );
+        private void DisposeOnComplete(object? sender, System.ComponentModel.AsyncCompletedEventArgs e)
+        {
+            WebClient current = (sender as WebClient)!;
+            currentDownloads.Remove(current);
+            current.Dispose();
             progressedSongs++;
         }
 
-        private void OnImport( object sender, EventArgs e ) {
-
-            try {
-                using ( var fileDialog = new OpenFileDialog( ) { Multiselect = false } ) {
-
-                    if ( fileDialog.ShowDialog( ) == DialogResult.OK ) {
-
-                        if ( !fileDialog.FileName.Contains( ".pack" ) )
-                            throw new Exception( $"Invalid file: {fileDialog.FileName.Split( @"\" ).Last( )}" );
-
-                        using ( StreamReader sr = new( fileDialog.OpenFile( ) ) ) {
-                            var readFile = sr.ReadLine( )!.Split( ';' )!;
-                            ResizeProgressBar( readFile.Length - 1 );
-                            Task.Run( ( ) => ReadMapPackFile( readFile ) );
-                        }
-                    }
+        private void OnImport(object sender, EventArgs e)
+        {
+            using (var fileDialog = new OpenFileDialog() { Multiselect = false, Filter = "Pack Files (*.pack)|*.pack" })
+            {
+                if (fileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    openedFileDialog = fileDialog;
+                    osuSelectedScriptLabel.Text = "Selected Script: " + fileDialog.FileName;
                 }
-            }
-            catch ( Exception ex ) {
-
-                MessageBox.Show( ex.Message );
             }
         }
 
-        private void ResizeProgressBar( int newSize ) {
+        private void ResizeProgressBar(int newSize)
+        {
 
             progressBar.Maximum = newSize;
             progressedSongs = progressBar.Value = 0;
         }
 
-        private void ProgressBarTick( object sender, EventArgs e ) {
+        private void ProgressBarTick(object sender, EventArgs e)
+        {
 
             progressBar.Value = progressedSongs;
+        }
+
+        private void progressBar_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (openedFileDialog.FileName != String.Empty)
+                using (StreamReader sr = new(openedFileDialog.OpenFile()))
+                {
+                    var readFile = sr.ReadLine()!.Split(';')!;
+
+                    ResizeProgressBar(readFile.Length - 1);
+                    Task.Run(() => ReadMapPackFile(readFile));
+                }
+        }
+
+        private void osuExitButton_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.Application.Exit();
+        }
+
+        private void MainForm_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                ReleaseCapture();
+                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            }
         }
     }
 }
